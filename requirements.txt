@@ -11,3 +11,4 @@ Jinja2
 matplotlib
 pyarrow
 seaborn
+networkx
