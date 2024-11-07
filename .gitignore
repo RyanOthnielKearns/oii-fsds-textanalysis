@@ -5,6 +5,7 @@ __pycache__/
 
 # Analysis
 data/
+img/
 
 # C extensions
 *.so
