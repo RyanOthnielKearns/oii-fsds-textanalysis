@@ -369,7 +369,7 @@ def plot_similarities(
     """
 
     # Convert to dense array and transpose if visualizing terms
-    matrix = tfidf_matrix.toarray()
+    matrix = tfidf_matrix  # .toarray()
     if not is_documents:
         matrix = matrix.T
 

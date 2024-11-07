@@ -82,19 +82,22 @@ class RedditScraper:
                     return (posts, data["data"].get("after"))
             return [], ""
 
-        url = f"{self.base_url}/r/{subreddit}/{sort}"
+        url = f"{self.base_url}/r/{subreddit}/{sort}?t=all"
         print(f"Fetching {limit} posts from {url}")
 
         posts_left_to_get = limit
         total_posts = []
 
         after = None
-        while posts_left_to_get > 0:
+        while len(list(set([p["url"] for p in total_posts]))) < limit:
             posts, after = get_up_to_100_posts(
                 self, url, min(100, posts_left_to_get), after=after
             )
-            posts_left_to_get -= len(posts)
             total_posts.extend(posts)
+            print(f"Got {len(list(set([p['url'] for p in posts])))} new unique posts")
+            print(
+                f"Total {len(list(set([p['url'] for p in total_posts])))} unique posts so far"
+            )
             time.sleep(2)
 
         return total_posts
