@@ -3,7 +3,9 @@ import requests
 import time
 import json
 import os
+
 from datetime import datetime, timedelta
+from typing import Optional
 
 
 def cache_results(func):
@@ -53,14 +55,14 @@ class RedditScraper:
             list: A list of posts from the specified subreddit.
         """
 
-        def get_up_to_100_posts(self, url, limit):
-            params = {"limit": limit}
+        def get_up_to_100_posts(
+            self, url, limit, after: Optional[str]
+        ) -> tuple[list, str]:
+            params = {"limit": limit, "after": after}
             response = requests.get(url, headers=self.headers, params=params)
 
             if response.status_code == 200:
                 data = response.json()
-                # Debug print
-                print(f"Response keys: {data.keys()}")
                 if "data" in data:
                     posts = []
                     for post in data["data"]["children"]:
@@ -77,8 +79,8 @@ class RedditScraper:
                                 "url": post_data.get("url"),
                             }
                         )
-                    return posts
-            return []
+                    return (posts, data["data"].get("after"))
+            return [], ""
 
         url = f"{self.base_url}/r/{subreddit}/{sort}"
         print(f"Fetching {limit} posts from {url}")
@@ -86,8 +88,11 @@ class RedditScraper:
         posts_left_to_get = limit
         total_posts = []
 
+        after = None
         while posts_left_to_get > 0:
-            posts = get_up_to_100_posts(self, url, min(100, posts_left_to_get))
+            posts, after = get_up_to_100_posts(
+                self, url, min(100, posts_left_to_get), after=after
+            )
             posts_left_to_get -= len(posts)
             total_posts.extend(posts)
             time.sleep(2)
