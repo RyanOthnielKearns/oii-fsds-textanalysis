@@ -52,34 +52,47 @@ class RedditScraper:
         Returns:
             list: A list of posts from the specified subreddit.
         """
+
+        def get_up_to_100_posts(self, url, limit):
+            params = {"limit": limit}
+            response = requests.get(url, headers=self.headers, params=params)
+
+            if response.status_code == 200:
+                data = response.json()
+                # Debug print
+                print(f"Response keys: {data.keys()}")
+                if "data" in data:
+                    posts = []
+                    for post in data["data"]["children"]:
+                        post_data = post["data"]
+                        posts.append(
+                            {
+                                "id": post_data.get("id"),
+                                "title": post_data.get("title"),
+                                "selftext": post_data.get("selftext"),
+                                "author": post_data.get("author"),
+                                "score": post_data.get("score"),
+                                "created_utc": post_data.get("created_utc"),
+                                "num_comments": post_data.get("num_comments"),
+                                "url": post_data.get("url"),
+                            }
+                        )
+                    return posts
+            return []
+
         url = f"{self.base_url}/r/{subreddit}/{sort}"
-        print(f"Fetching posts from {url}")
+        print(f"Fetching {limit} posts from {url}")
 
-        params = {"limit": limit}
-        response = requests.get(url, headers=self.headers, params=params)
+        posts_left_to_get = limit
+        total_posts = []
 
-        if response.status_code == 200:
-            data = response.json()
-            # Debug print
-            print(f"Response keys: {data.keys()}")
-            if "data" in data:
-                posts = []
-                for post in data["data"]["children"]:
-                    post_data = post["data"]
-                    posts.append(
-                        {
-                            "id": post_data.get("id"),
-                            "title": post_data.get("title"),
-                            "selftext": post_data.get("selftext"),
-                            "author": post_data.get("author"),
-                            "score": post_data.get("score"),
-                            "created_utc": post_data.get("created_utc"),
-                            "num_comments": post_data.get("num_comments"),
-                            "url": post_data.get("url"),
-                        }
-                    )
-                return posts
-        return []
+        while posts_left_to_get > 0:
+            posts = get_up_to_100_posts(self, url, min(100, posts_left_to_get))
+            posts_left_to_get -= len(posts)
+            total_posts.extend(posts)
+            time.sleep(2)
+
+        return total_posts
 
     def get_post_comments(self, post_id):
         """Get comments for a specific post."""
