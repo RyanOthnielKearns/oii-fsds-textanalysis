@@ -7,6 +7,7 @@ from nltk.corpus import stopwords
 from sklearn.feature_extraction.text import TfidfVectorizer
 from utils.text_processor import *
 import matplotlib.pyplot as plt
+from matplotlib import cm
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.manifold import MDS, TSNE
 
@@ -348,6 +349,7 @@ def plot_similarities(
     method="tsne",
     is_documents=True,
     label_color=False,
+    use_text_annotations: bool = True,
     top_terms=None,
     figsize=(12, 8),
 ):
@@ -359,6 +361,8 @@ def plot_similarities(
     - labels: list of labels (document texts or terms)
     - title: plot title
     - method: 'tsne' or 'mds' for dimensionality reduction
+    - use_text_annotations: if True, use text annotations for labels. Otherwise, color
+      data points directly and use a legend.
     - top_terms: if int, only annotate top n terms
     - is_documents: if True, plot documents, else plot terms
     - figsize: tuple for figure size
@@ -382,10 +386,6 @@ def plot_similarities(
     else:
         raise ValueError("Method must be 'tsne' or 'mds'")
 
-    # Create visualization
-    fig, ax = plt.subplots(figsize=figsize)
-    scatter = ax.scatter(coords[:, 0], coords[:, 1], alpha=0.6)
-
     # Add labels
     if top_terms and isinstance(top_terms, int):
         mean_tfidf = (
@@ -405,27 +405,53 @@ def plot_similarities(
         color_map = {
             label: color
             for label, color in zip(
-                unique_labels, plt.cm.rainbow(np.linspace(0, 1, len(unique_labels)))
+                unique_labels,
+                cm.Set1.colors[: len(unique_labels)],
             )
         }
         colors = [color_map[label] for label in labels_to_annotate]
     else:
         colors = ["black"] * len(labels_to_annotate)
 
+    # Create visualization
+    scatter_colors = None
+    if not use_text_annotations:
+        # Using colors
+        scatter_colors = [color_map[label] for label in labels_to_annotate]
+
+    fig, ax = plt.subplots(figsize=figsize)
+    ax.scatter(
+        coords[:, 0],
+        coords[:, 1],
+        alpha=0.6,
+        c=scatter_colors,
+    )
+    if not use_text_annotations:
+        # Add legend
+        unique_labels = list(set(labels_to_annotate))
+        legend_elements = [
+            plt.Line2D(
+                [0], [0], marker="o", color="w", label=label, markerfacecolor=color
+            )
+            for label, color in color_map.items()
+        ]
+        ax.legend(handles=legend_elements)
+
     for i, (label, color) in enumerate(zip(labels_to_annotate, colors)):
         # Split long labels for documents
         if is_documents:
             label = split_label(label, 20)
 
-        ax.annotate(
-            label,
-            (coords_to_annotate[i, 0], coords_to_annotate[i, 1]),
-            xytext=(5, 5),
-            textcoords="offset points",
-            fontsize=8 if is_documents else 12,
-            alpha=0.7,
-            color=color,
-        )
+        if use_text_annotations:
+            ax.annotate(
+                label,
+                (coords_to_annotate[i, 0], coords_to_annotate[i, 1]),
+                xytext=(5, 5),
+                textcoords="offset points",
+                fontsize=8 if is_documents else 12,
+                alpha=0.7,
+                color=color,
+            )
 
     ax.set_title(title)
     ax.grid(True, linestyle="--", alpha=0.3)
