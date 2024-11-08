@@ -3,6 +3,8 @@ from collections import Counter
 from datetime import datetime
 import pandas as pd
 import numpy as np
+import seaborn as sns
+
 from nltk.corpus import stopwords
 from sklearn.feature_extraction.text import TfidfVectorizer
 from utils.text_processor import *
@@ -456,3 +458,46 @@ def plot_similarities(
     ax.set_title(title)
     ax.grid(True, linestyle="--", alpha=0.3)
     return fig, ax
+
+def analyze_word_similarities(words, wv_model, glv_model):
+    """Compare word similarities using Word2Vec and GloVe."""
+    n = len(words)
+    wv_sim = np.zeros((n, n))
+    glv_sim = np.zeros((n, n))
+    
+    # Calculate similarities
+    for i, w1 in enumerate(words):
+        for j, w2 in enumerate(words):
+            wv_sim[i,j] = wv_model.similarity(w1, w2)
+            glv_sim[i,j] = glv_model.similarity(w1, w2)
+    
+    # Print similarities
+    print("Word2Vec Similarities:")
+    print("--------------------")
+    for i, w1 in enumerate(words):
+        for j, w2 in enumerate(words[i+1:], i+1):
+            print(f"{w1:10} - {w2:10}: {wv_sim[i,j]:.3f}")
+    
+    print("\nGloVe Similarities:")
+    print("------------------")
+    for i, w1 in enumerate(words):
+        for j, w2 in enumerate(words[i+1:], i+1):
+            print(f"{w1:10} - {w2:10}: {glv_sim[i,j]:.3f}")
+    
+    # Visualize
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+    
+    sns.heatmap(wv_sim, annot=True, fmt='.3f',
+                xticklabels=words, yticklabels=words,
+                cmap='YlOrRd', ax=ax1)
+    ax1.set_title('Word2Vec Similarities')
+    
+    sns.heatmap(glv_sim, annot=True, fmt='.3f',
+                xticklabels=words, yticklabels=words,
+                cmap='YlOrRd', ax=ax2)
+    ax2.set_title('GloVe Similarities')
+    
+    plt.tight_layout()
+    plt.show()
+    
+    return wv_sim, glv_sim
